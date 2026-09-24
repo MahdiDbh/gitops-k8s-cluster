@@ -1,0 +1,16 @@
+# Kubernetes / kubeconfig
+kubeconfig*
+*.kubeconfig
+
+# Secrets locaux (webhook Discord réel, tokens, etc.)
+*.secret.yaml
+*-secret.yaml
+.env
+
+# OS / éditeurs
+.DS_Store
+*.swp
+
+# Helm
+*.tgz
+charts/
