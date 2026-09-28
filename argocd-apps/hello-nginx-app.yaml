@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hello-nginx
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/MahdiDbh/gitops-k8s-cluster.git
+    targetRevision: main
+    path: apps/hello-nginx
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+
+  syncPolicy:
+    automated:
+      prune: true      # supprime du cluster ce qui a été supprimé de Git
+      selfHeal: true    # annule les modifications faites hors-Git (kubectl edit, etc.)
+    syncOptions:
+      - CreateNamespace=true
