@@ -20,11 +20,20 @@ kubectl cluster-info >/dev/null
 echo "==> Création du namespace '${NAMESPACE}' (si absent)..."
 kubectl create namespace "${NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
 
-echo "==> Application du manifest ArgoCD officiel..."
-kubectl apply -n "${NAMESPACE}" -f "${ARGOCD_MANIFEST_URL}"
+echo "==> Application du manifest ArgoCD officiel (server-side apply)..."
+# Note: le manifest ArgoCD contient une CRD volumineuse
+# (applicationsets.argoproj.io) qui dépasse la limite d'annotations de
+# `kubectl apply` classique (client-side, last-applied-configuration).
+# On utilise --server-side, la méthode recommandée par Kubernetes pour
+# les manifests volumineux.
+kubectl apply -n "${NAMESPACE}" -f "${ARGOCD_MANIFEST_URL}" --server-side --force-conflicts
 
-echo "==> Attente que les pods ArgoCD soient prêts (jusqu'à 5 min)..."
-kubectl wait --for=condition=Ready pods --all -n "${NAMESPACE}" --timeout=300s
+echo "==> Attente que les pods ArgoCD soient prêts (jusqu'à 10 min)..."
+# Le pull des images (quay.io, ghcr.io) peut être lent selon la
+# connectivité au premier démarrage ; le pod argocd-dex-server en
+# particulier peut prendre plus de temps que les autres.
+kubectl wait --for=condition=Ready pods --all -n "${NAMESPACE}" --timeout=600s || \
+  echo "⚠️  Certains pods ne sont pas encore prêts, voir 'kubectl get pods -n ${NAMESPACE}' ci-dessous."
 
 echo "==> Pods ArgoCD :"
 kubectl get pods -n "${NAMESPACE}"
