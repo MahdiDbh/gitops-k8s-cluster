@@ -1,0 +1,62 @@
+# values.yaml — configuration du chart kube-prometheus-stack
+#
+# Dimensionné pour un cluster k3s mono-nœud de lab/dev : rétention et
+# ressources volontairement réduites par rapport aux defaults du chart
+# (pensés pour un cluster de production multi-nœuds).
+
+grafana:
+  enabled: true
+  adminPassword: "admin123"   # à changer en production ; suffisant pour un lab
+  service:
+    type: ClusterIP
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  # Dashboards par défaut (cluster, nodes, pods) déjà fournis par le chart
+  defaultDashboardsEnabled: true
+
+prometheus:
+  prometheusSpec:
+    retention: 3d
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    # Volume par défaut du chart (emptyDir) : les données ne survivent pas
+    # à un redémarrage du pod. Acceptable pour un lab, à revoir en prod
+    # avec un storageClass + PVC.
+
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+  # La configuration du receiver Discord est appliquée séparément via
+  # monitoring/alertmanager-config.yaml (étape 6) pour garder la config
+  # des alertes découplée de l'installation du chart.
+
+nodeExporter:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+# Composants non nécessaires sur un cluster k3s mono-nœud de lab
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
