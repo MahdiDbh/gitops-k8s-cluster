@@ -17,7 +17,7 @@ spec:
 
   syncPolicy:
     automated:
-      prune: true      # supprime du cluster ce qui a été supprimé de Git
-      selfHeal: true    # annule les modifications faites hors-Git (kubectl edit, etc.)
+      prune: true      # remove from the cluster what was removed from Git
+      selfHeal: true    # revert changes made outside Git (kubectl edit, etc.)
     syncOptions:
       - CreateNamespace=true

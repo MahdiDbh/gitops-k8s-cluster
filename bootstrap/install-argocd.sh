@@ -1,53 +1,53 @@
 #!/usr/bin/env bash
 #
-# install-argocd.sh — Bootstrap ArgoCD dans le cluster k3s
+# install-argocd.sh — Bootstrap ArgoCD on the k3s cluster
 #
-# Ce script installe ArgoCD via le manifest officiel du projet dans le
-# namespace `argocd`, attend que les pods soient prêts, puis affiche le
-# mot de passe admin initial.
+# This script installs ArgoCD via the project's official manifest in the
+# `argocd` namespace, waits for the pods to become ready, then prints the
+# initial admin password.
 #
-# Prérequis : kubectl configuré et pointant vers le cluster cible
-# (voir docs/setup.md).
+# Prerequisites: kubectl configured and pointing at the target cluster
+# (see docs/setup.md).
 
 set -euo pipefail
 
 NAMESPACE="argocd"
 ARGOCD_MANIFEST_URL="https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml"
 
-echo "==> Vérification de la connexion au cluster..."
+echo "==> Checking cluster connectivity..."
 kubectl cluster-info >/dev/null
 
-echo "==> Création du namespace '${NAMESPACE}' (si absent)..."
+echo "==> Creating namespace '${NAMESPACE}' (if missing)..."
 kubectl create namespace "${NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
 
-echo "==> Application du manifest ArgoCD officiel (server-side apply)..."
-# Note: le manifest ArgoCD contient une CRD volumineuse
-# (applicationsets.argoproj.io) qui dépasse la limite d'annotations de
-# `kubectl apply` classique (client-side, last-applied-configuration).
-# On utilise --server-side, la méthode recommandée par Kubernetes pour
-# les manifests volumineux.
+echo "==> Applying the official ArgoCD manifest (server-side apply)..."
+# Note: the ArgoCD manifest contains a large CRD
+# (applicationsets.argoproj.io) that exceeds the annotation size limit of
+# a classic `kubectl apply` (client-side, last-applied-configuration).
+# We use --server-side, the method recommended by Kubernetes for large
+# manifests.
 kubectl apply -n "${NAMESPACE}" -f "${ARGOCD_MANIFEST_URL}" --server-side --force-conflicts
 
-echo "==> Attente que les pods ArgoCD soient prêts (jusqu'à 10 min)..."
-# Le pull des images (quay.io, ghcr.io) peut être lent selon la
-# connectivité au premier démarrage ; le pod argocd-dex-server en
-# particulier peut prendre plus de temps que les autres.
+echo "==> Waiting for ArgoCD pods to become ready (up to 10 min)..."
+# Image pulls (quay.io, ghcr.io) can be slow depending on connectivity on
+# first start; the argocd-dex-server pod in particular can take longer
+# than the others.
 kubectl wait --for=condition=Ready pods --all -n "${NAMESPACE}" --timeout=600s || \
-  echo "⚠️  Certains pods ne sont pas encore prêts, voir 'kubectl get pods -n ${NAMESPACE}' ci-dessous."
+  echo "⚠️  Some pods are not ready yet, see 'kubectl get pods -n ${NAMESPACE}' below."
 
-echo "==> Pods ArgoCD :"
+echo "==> ArgoCD pods:"
 kubectl get pods -n "${NAMESPACE}"
 
 echo ""
-echo "==> Mot de passe admin initial :"
+echo "==> Initial admin password:"
 kubectl -n "${NAMESPACE}" get secret argocd-initial-admin-secret \
   -o jsonpath="{.data.password}" | base64 -d
 echo ""
 
 echo ""
-echo "==> Pour accéder à l'UI ArgoCD en local :"
+echo "==> To access the ArgoCD UI locally:"
 echo "    kubectl port-forward svc/argocd-server -n ${NAMESPACE} 8080:443"
-echo "    puis ouvrir https://localhost:8080 (user: admin)"
+echo "    then open https://localhost:8080 (user: admin)"
 echo ""
-echo "==> Pour installer la CLI argocd (optionnel) :"
+echo "==> To install the argocd CLI (optional):"
 echo "    https://argo-cd.readthedocs.io/en/stable/cli_installation/"

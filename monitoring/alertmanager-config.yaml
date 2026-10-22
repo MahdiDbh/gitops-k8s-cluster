@@ -1,16 +1,16 @@
-# alertmanager-config.yaml — Configuration Alertmanager : routage des
-# alertes vers un receiver Discord (natif, Alertmanager >= 0.25).
+# alertmanager-config.yaml — Alertmanager configuration: routes alerts to
+# a native Discord receiver (Alertmanager >= 0.25).
 #
-# IMPORTANT — sécurité :
-# L'URL réelle du webhook Discord n'apparaît JAMAIS dans ce fichier ni
-# dans Git (elle permettrait à quiconque de poster dans le salon Discord).
-# Elle est stockée uniquement dans un Secret Kubernetes
-# (`alertmanager-discord-webhook`), créé manuellement sur le cluster
-# (commande en bas de ce fichier) et référencé ici par nom/clé seulement.
+# IMPORTANT — security:
+# The real Discord webhook URL NEVER appears in this file or in Git (it
+# would let anyone post to the Discord channel). It is stored only in a
+# Kubernetes Secret (`alertmanager-discord-webhook`), created manually on
+# the cluster (command at the bottom of this file) and referenced here by
+# name/key only.
 #
-# Ce fichier est appliqué comme `AlertmanagerConfig` (CRD du
-# prometheus-operator), qui vient compléter — pas remplacer — la config
-# de base posée par le chart kube-prometheus-stack.
+# This file is applied as an `AlertmanagerConfig` (prometheus-operator
+# CRD), which complements — not replaces — the base config set by the
+# kube-prometheus-stack chart.
 
 apiVersion: monitoring.coreos.com/v1alpha1
 kind: AlertmanagerConfig
@@ -18,8 +18,8 @@ metadata:
   name: discord-alerts
   namespace: monitoring
   labels:
-    # Doit correspondre au alertmanagerConfigSelector du chart
-    # (release: kube-prometheus-stack, configuré par défaut par le chart)
+    # Must match the chart's alertmanagerConfigSelector
+    # (release: kube-prometheus-stack, set by default by the chart)
     release: kube-prometheus-stack
 spec:
   route:
@@ -39,17 +39,17 @@ spec:
           message: |
             **Status:** {{ .Status }}
             **Namespace:** {{ .CommonLabels.namespace }}
-            **Résumé:** {{ .CommonAnnotations.summary }}
+            **Summary:** {{ .CommonAnnotations.summary }}
             **Description:** {{ .CommonAnnotations.description }}
 
 ---
-# Le Secret `alertmanager-discord-webhook` référencé ci-dessus N'EST PAS
-# défini dans Git (il contiendrait l'URL réelle du webhook). Il est créé
-# une fois, manuellement, directement sur le cluster :
+# The `alertmanager-discord-webhook` Secret referenced above is NOT
+# defined in Git (it would contain the real webhook URL). It is created
+# once, manually, directly on the cluster:
 #
 #   kubectl create secret generic alertmanager-discord-webhook \
 #     --namespace monitoring \
 #     --from-literal=webhookURL='https://discord.com/api/webhooks/XXXX/YYYY'
 #
-# Ce Secret existe déjà sur ce cluster (créé lors de la mise en place de
-# l'alerting). À reproduire manuellement sur tout nouvel environnement.
+# This Secret already exists on this cluster (created when alerting was
+# set up). Reproduce it manually on any new environment.
