@@ -20,20 +20,32 @@ cluster:
 
 ## Architecture
 
-```
-Git repo (GitHub)
-   │
-   ▼
-ArgoCD (watches the repo, applies changes, self-heals)
-   │
-   ▼
-k3s cluster
-   ├── Namespace default    → apps (hello-nginx)
-   ├── Namespace argocd     → ArgoCD itself
-   └── Namespace monitoring → Prometheus / Grafana / Alertmanager
-                                   │
-                                   ▼
-                            Discord (alerts)
+```mermaid
+flowchart TD
+    GIT["Git repo (GitHub)"]
+    ARGOCD["ArgoCD<br/>watches the repo, applies changes, self-heals"]
+
+    subgraph CLUSTER["k3s cluster"]
+        direction LR
+        DEFAULT["Namespace: default<br/>apps (hello-nginx)"]
+        ARGOCDNS["Namespace: argocd<br/>ArgoCD itself"]
+        MONITORING["Namespace: monitoring<br/>Prometheus / Grafana / Alertmanager"]
+    end
+
+    DISCORD["Discord<br/>alerts"]
+
+    GIT --> ARGOCD
+    ARGOCD --> DEFAULT
+    ARGOCD -.-> ARGOCDNS
+    ARGOCD -.-> MONITORING
+    MONITORING --> DISCORD
+
+    style GIT fill:#24292e,stroke:#888,color:#fff
+    style ARGOCD fill:#ef7b4d,stroke:#888,color:#000
+    style DISCORD fill:#5865F2,stroke:#888,color:#fff
+    style DEFAULT fill:#2b3137,stroke:#666,color:#fff
+    style ARGOCDNS fill:#2b3137,stroke:#666,color:#fff
+    style MONITORING fill:#2b3137,stroke:#666,color:#fff
 ```
 
 ## Tech stack
