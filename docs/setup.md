@@ -88,3 +88,43 @@ helm version
 
 Voir [`bootstrap/install-argocd.sh`](../bootstrap/install-argocd.sh) pour le
 déploiement d'ArgoCD dans le cluster.
+
+## Alerting — Alertmanager → Discord
+
+La configuration du routage des alertes vers Discord se trouve dans
+[`monitoring/alertmanager-config.yaml`](../monitoring/alertmanager-config.yaml).
+Ce fichier ne contient **jamais** l'URL réelle du webhook : elle est stockée
+dans un Secret Kubernetes créé manuellement, une seule fois, sur chaque
+environnement :
+
+```bash
+kubectl create secret generic alertmanager-discord-webhook \
+  --namespace monitoring \
+  --from-literal=webhookURL='<URL_DU_WEBHOOK_DISCORD>'
+```
+
+Puis on applique la config :
+
+```bash
+kubectl apply -f monitoring/alertmanager-config.yaml
+```
+
+### Créer un webhook Discord
+
+1. Dans Discord : Paramètres du serveur → Intégrations → Webhooks → Nouveau
+   webhook
+2. Choisir le salon cible, copier l'URL du webhook
+3. L'utiliser dans la commande `kubectl create secret` ci-dessus
+
+### Vérifier que ça fonctionne
+
+Déclencher une alerte de test via l'API Alertmanager (depuis le pod) :
+
+```bash
+kubectl exec -n monitoring alertmanager-kube-prometheus-stack-alertmanager-0 \
+  -c alertmanager -- wget -qO- --post-data='[{"labels":{"alertname":"Test","namespace":"monitoring","severity":"warning"},"annotations":{"summary":"Test","description":"Test"}}]' \
+  --header='Content-Type: application/json' http://localhost:9093/api/v2/alerts
+```
+
+Le message doit apparaître dans le salon Discord configuré après
+`groupWait` (30s par défaut).

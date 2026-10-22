@@ -1,0 +1,55 @@
+# alertmanager-config.yaml — Configuration Alertmanager : routage des
+# alertes vers un receiver Discord (natif, Alertmanager >= 0.25).
+#
+# IMPORTANT — sécurité :
+# L'URL réelle du webhook Discord n'apparaît JAMAIS dans ce fichier ni
+# dans Git (elle permettrait à quiconque de poster dans le salon Discord).
+# Elle est stockée uniquement dans un Secret Kubernetes
+# (`alertmanager-discord-webhook`), créé manuellement sur le cluster
+# (commande en bas de ce fichier) et référencé ici par nom/clé seulement.
+#
+# Ce fichier est appliqué comme `AlertmanagerConfig` (CRD du
+# prometheus-operator), qui vient compléter — pas remplacer — la config
+# de base posée par le chart kube-prometheus-stack.
+
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: discord-alerts
+  namespace: monitoring
+  labels:
+    # Doit correspondre au alertmanagerConfigSelector du chart
+    # (release: kube-prometheus-stack, configuré par défaut par le chart)
+    release: kube-prometheus-stack
+spec:
+  route:
+    receiver: discord
+    groupBy: ["alertname", "namespace"]
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 4h
+
+  receivers:
+    - name: discord
+      discordConfigs:
+        - apiURL:
+            name: alertmanager-discord-webhook
+            key: webhookURL
+          title: '{{ .CommonLabels.alertname }}'
+          message: |
+            **Status:** {{ .Status }}
+            **Namespace:** {{ .CommonLabels.namespace }}
+            **Résumé:** {{ .CommonAnnotations.summary }}
+            **Description:** {{ .CommonAnnotations.description }}
+
+---
+# Le Secret `alertmanager-discord-webhook` référencé ci-dessus N'EST PAS
+# défini dans Git (il contiendrait l'URL réelle du webhook). Il est créé
+# une fois, manuellement, directement sur le cluster :
+#
+#   kubectl create secret generic alertmanager-discord-webhook \
+#     --namespace monitoring \
+#     --from-literal=webhookURL='https://discord.com/api/webhooks/XXXX/YYYY'
+#
+# Ce Secret existe déjà sur ce cluster (créé lors de la mise en place de
+# l'alerting). À reproduire manuellement sur tout nouvel environnement.
