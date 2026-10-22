@@ -12,12 +12,26 @@ grafana:
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 192Mi
     limits:
-      cpu: 200m
-      memory: 256Mi
+      cpu: 300m
+      memory: 512Mi   # 256Mi était trop juste : Grafana 13.x + ses plugins
+                       # par défaut (traces, pyroscope, loki...) dépasse ce
+                       # seuil en usage réel -> OOMKilled constaté en test.
   # Dashboards par défaut (cluster, nodes, pods) déjà fournis par le chart
   defaultDashboardsEnabled: true
+  # Probes assouplies : sur une machine de lab partagée (CPU/RAM sollicités
+  # par ailleurs), le démarrage de Grafana peut largement dépasser les
+  # délais par défaut du chart, ce qui déclenchait des redémarrages en
+  # boucle (liveness probe qui tue le process avant la fin du démarrage).
+  livenessProbe:
+    initialDelaySeconds: 120
+    timeoutSeconds: 10
+    failureThreshold: 6
+  readinessProbe:
+    initialDelaySeconds: 60
+    timeoutSeconds: 10
+    failureThreshold: 6
 
 prometheus:
   prometheusSpec:
